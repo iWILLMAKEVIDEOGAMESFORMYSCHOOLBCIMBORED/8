@@ -178,11 +178,12 @@ struct LibraryView: View {
     private func loadAll() async {
         isLoading = true
         errorMessage = nil
-        do {
-            allSongs = try await APIClient.fetchSongs("/music/list")
-            applyFilter()
-        } catch {
+        let songs = await PlayerModel.ensureCatalog()
+        if songs.isEmpty {
             errorMessage = "Could not load the vault."
+        } else {
+            allSongs = songs
+            applyFilter()
         }
         isLoading = false
     }

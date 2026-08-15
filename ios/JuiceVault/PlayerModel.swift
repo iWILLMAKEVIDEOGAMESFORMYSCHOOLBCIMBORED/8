@@ -4,6 +4,16 @@ import AVFoundation
 @MainActor
 final class PlayerModel: ObservableObject {
     static let shared = PlayerModel()
+    static var catalog: [Song]?
+
+    static func ensureCatalog() async -> [Song] {
+        if let catalog { return catalog }
+        if let songs = try? await APIClient.fetchSongs("/music/list") {
+            catalog = songs
+            return songs
+        }
+        return catalog ?? []
+    }
 
     @Published var queue: [Song] = []
     @Published var currentIndex: Int = 0

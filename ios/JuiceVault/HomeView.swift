@@ -1,32 +1,48 @@
 import SwiftUI
 
+struct Shelf: Identifiable {
+    let id: String
+    let title: String
+    let icon: String
+    let colors: [Color]
+    let songs: [Song]
+}
+
 struct HomeView: View {
     @ObservedObject private var radio = RadioModel.shared
     @ObservedObject private var player = PlayerModel.shared
     @State private var stats: StatsResponse?
-    @State private var errorMessage: String?
+    @State private var shelves: [Shelf] = []
+    @State private var isLoaded = false
+    @State private var failed = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 30) {
-                    hero
-                    if let stats {
-                        statsBlock(stats)
-                        topSection(stats)
-                    } else if let errorMessage {
+                VStack(alignment: .leading, spacing: 26) {
+                    miniHeader
+                    if isLoaded {
+                        if let stats {
+                            shelfSection(mostPlayedShelf(stats))
+                        }
+                        ForEach(shelves) { shelf in
+                            shelfSection(shelf)
+                        }
+                        if shelves.isEmpty && stats == nil {
+                            emptyBlock
+                        }
+                        radioBanner
+                    } else if failed {
                         errorBlock
                     } else {
-                        SkeletonRow(titleWidth: 180)
-                        SkeletonRow(titleWidth: 140)
-                        SkeletonRow(titleWidth: 160)
-                        SkeletonRow(titleWidth: 120)
+                        ShelfSkeleton()
+                        ShelfSkeleton()
+                        ShelfSkeleton()
                     }
-                    radioCard
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 28)
+                .padding(.top, 8)
+                .padding(.bottom, 30)
             }
             .background(Theme.bg)
             .refreshable { await load() }
@@ -34,168 +50,129 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Hero
+    // MARK: Header
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 5) {
+    private var miniHeader: some View {
+        HStack {
             Text("999")
-                .font(Theme.display(46, .black))
-                .foregroundStyle(Theme.primaryText)
-            Text("V A U L T")
-                .font(.system(size: 13, weight: .bold))
-                .tracking(6)
-                .foregroundStyle(Theme.violet)
-            Text("Every era. Every leak. All 999s.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.secondaryText)
-        }
-    }
-
-    // MARK: Overview
-
-    private func statsBlock(_ stats: StatsResponse) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-            stat("\(stats.total_songs)", "UNRELEASED")
-            stat(compactDuration(stats.total_duration), "PLAYTIME")
-            stat(stats.total_size, "ARCHIVE")
-        }
-    }
-
-    private func stat(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(Theme.display(19, .black))
-                .foregroundStyle(Theme.primaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(label)
-                .font(.system(size: 10, weight: .bold))
-                .tracking(1.5)
+                .font(Theme.display(16, .black))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 15)
+                .padding(.vertical, 8)
+                .background(
+                    LinearGradient(colors: [Theme.accent, Theme.violet], startPoint: .leading, endPoint: .trailing),
+                    in: Capsule()
+                )
+                .shadow(color: Theme.accent.opacity(0.45), radius: 12, y: 4)
+            Spacer()
+            Image(systemName: "waveform")
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.tertiaryText)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 6)
     }
 
-    private func compactDuration(_ raw: String) -> String {
-        let words = raw.split(separator: " ").map { String($0).replacingOccurrences(of: ",", with: "") }
-        var parts: [String] = []
-        var i = 0
-        while i + 1 < words.count {
-            let unit = words[i + 1].lowercased()
-            let suffix: String
-            if unit.hasPrefix("day") { suffix = "D" }
-            else if unit.hasPrefix("hour") { suffix = "H" }
-            else if unit.hasPrefix("minute") { suffix = "M" }
-            else if unit.hasPrefix("second") { suffix = "S" }
-            else { suffix = "" }
-            if !suffix.isEmpty {
-                parts.append("\(words[i])\(suffix)")
+    // MARK: Shelves
+
+    private func mostPlayedShelf(_ stats: StatsResponse) -> Shelf {
+        Shelf(
+            id: "top",
+            title: "Most Played",
+            icon: "flame.fill",
+            colors: [Theme.gold, Theme.accent],
+            songs: Array(stats.top_songs.prefix(15).map(\.song))
+        )
+    }
+
+    private func shelfSection(_ shelf: Shelf) -> some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 8) {
+                Image(systemName: shelf.icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.leading, 12)
+                Text(shelf.title.uppercased())
+                    .font(.system(size: 13, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.white)
+                    .padding(.trailing, 13)
+                    .padding(.vertical, 1)
             }
-            i += 2
-        }
-        return parts.isEmpty ? raw : parts.joined(separator: " · ")
-    }
+            .padding(.vertical, 7)
+            .background(
+                LinearGradient(colors: shelf.colors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: Capsule()
+            )
+            .shadow(color: shelf.colors[0].opacity(0.35), radius: 10, y: 4)
 
-    // MARK: Most played
-
-    private func topSection(_ stats: StatsResponse) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionHeader(title: "Most Played")
-            ForEach(Array(stats.top_songs.prefix(10).enumerated()), id: \.element.id) { index, top in
-                Button {
-                    playOrToggle(top.song, in: stats.top_songs.map(\.song))
-                } label: {
-                    rankRow(rank: index + 1, song: top.song)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(Array(shelf.songs.enumerated()), id: \.element.id) { index, song in
+                        Button {
+                            playOrToggle(song, in: shelf.songs)
+                        } label: {
+                            ShelfCard(song: song, rank: shelf.id == "top" ? index + 1 : nil)
+                        }
+                        .buttonStyle(RowPress())
+                    }
                 }
-                .buttonStyle(RowPress())
+                .padding(.bottom, 2)
             }
         }
     }
 
-    private func rankRow(rank: Int, song: Song) -> some View {
-        HStack(spacing: 12) {
-            Text("\(rank)")
-                .font(Theme.display(15, .black))
-                .foregroundStyle(rank == 1 ? Theme.gold : Theme.tertiaryText)
-                .frame(width: 26, alignment: .leading)
-            ArtworkView(url: song.coverURL, size: 44, radius: 10)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(song.title)
-                    .font(.system(size: 14.5, weight: .semibold))
-                    .foregroundStyle(player.currentSong?.id == song.id ? Theme.accent : Theme.primaryText)
-                    .lineLimit(1)
-                Text("\(song.artist)  ·  \(song.play_count ?? 0) plays")
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(Theme.secondaryText)
-                    .lineLimit(1)
-            }
-            Spacer()
-            if player.currentSong?.id == song.id {
-                EqualizerBars(playing: player.isPlaying)
-            }
-        }
-        .padding(.vertical, 5)
-    }
+    // MARK: Radio banner
 
-    // MARK: Radio
-
-    private var radioCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private var radioBanner: some View {
+        VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 7) {
                 Circle()
-                    .fill(radio.isPlaying ? Theme.danger : Theme.accent)
+                    .fill(radio.isPlaying ? Theme.danger : Color.white)
                     .frame(width: 8, height: 8)
                 Text("LIVE")
                     .font(.system(size: 11, weight: .heavy))
                     .tracking(2)
-                    .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.primaryText)
+                    .foregroundStyle(.white)
                 Spacer()
-                if radio.isLoading {
-                    ProgressView().tint(Theme.accent).scaleEffect(0.75)
-                }
+                Text("24/7 vault radio")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.75))
             }
-            if let now = radio.nowPlaying {
-                HStack(spacing: 14) {
-                    ArtworkView(url: now.song.coverURL, size: 96, radius: 14)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(now.title)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Theme.primaryText)
-                            .lineLimit(2)
-                        Text(now.artist)
-                            .font(.system(size: 13.5))
-                            .foregroundStyle(Theme.secondaryText)
-                            .lineLimit(1)
-                    }
-                    Spacer()
-                    EqualizerBars(playing: radio.isPlaying)
+            HStack(spacing: 14) {
+                ArtworkView(url: radio.nowPlaying?.song.coverURL, size: 88, radius: 12)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(radio.nowPlaying?.title ?? "999 RADIO")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    Text(radio.nowPlaying?.artist ?? "Tune in — the vault never sleeps")
+                        .font(.system(size: 13.5))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                        .lineLimit(1)
                 }
-            } else {
-                Text("Tune in to the vault, 24/7.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.secondaryText)
-            }
-            Button {
-                radio.toggle()
-                Vibe.tap()
-            } label: {
-                Text(radio.isPlaying ? "STOP" : "LISTEN LIVE")
-                    .font(.system(size: 12.5, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(radio.isPlaying ? Color.white : Theme.bg)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        radio.isPlaying ? AnyShapeStyle(Theme.danger) : AnyShapeStyle(Color.white),
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
+                Spacer()
+                Button {
+                    radio.toggle()
+                    Vibe.tap()
+                } label: {
+                    Image(systemName: radio.isPlaying ? "stop.fill" : "play.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
+                        .frame(width: 58, height: 58)
+                        .background(Circle().fill(.white))
+                        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
+                }
             }
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Theme.surface)
+            LinearGradient(
+                colors: [Theme.accent, Theme.violet, Color(red: 0.24, green: 0.12, blue: 0.44)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
         )
+        .shadow(color: Theme.accent.opacity(0.35), radius: 22, y: 10)
     }
 
     // MARK: States
@@ -205,7 +182,7 @@ struct HomeView: View {
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: 26))
                 .foregroundStyle(Theme.tertiaryText)
-            Text(errorMessage ?? "")
+            Text("Could not reach the vault. Check your connection and pull to retry.")
                 .font(.footnote)
                 .foregroundStyle(Theme.secondaryText)
                 .multilineTextAlignment(.center)
@@ -217,11 +194,51 @@ struct HomeView: View {
             .tint(Theme.accent)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 20)
-        .padding(.bottom, 12)
+        .padding(.top, 24)
     }
 
-    // MARK: Helpers
+    private var emptyBlock: some View {
+        Text("Nothing here yet — pull to refresh.")
+            .font(.footnote)
+            .foregroundStyle(Theme.secondaryText)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 20)
+    }
+
+    // MARK: Data
+
+    private func load() async {
+        async let statsTask = APIClient.stats()
+        let songs = await PlayerModel.ensureCatalog()
+        do {
+            let s = try await statsTask
+            stats = s
+            buildShelves(songs)
+            isLoaded = true
+            failed = false
+        } catch {
+            stats = nil
+            failed = true
+            isLoaded = false
+        }
+        Task { await radio.refresh() }
+    }
+
+    private func buildShelves(_ songs: [Song]) {
+        let defs: [(String, String, String, [Color])] = [
+            ("main", "Unreleased", "sparkles", [Theme.violet, Theme.accent]),
+            ("released", "Released", "checkmark.seal.fill", [Theme.accent, Color(red: 1.0, green: 0.5, blue: 0.3)]),
+            ("instrumental", "Instrumentals", "waveform", [Color(red: 0.2, green: 0.72, blue: 1.0), Color(red: 0.1, green: 0.6, blue: 0.8)]),
+            ("stem", "Stems", "slider.horizontal.3", [Color(red: 0.37, green: 0.9, blue: 0.55), Color(red: 0.1, green: 0.72, blue: 0.6)]),
+            ("cut", "Cuts", "scissors", [Color(red: 0.3, green: 0.5, blue: 1.0), Theme.violet]),
+            ("remaster", "Remasters", "star.fill", [Theme.gold, Color(red: 1.0, green: 0.55, blue: 0.3)])
+        ]
+        shelves = defs.compactMap { def in
+            let found = songs.filter { $0.category == def.0 }
+            guard !found.isEmpty else { return nil }
+            return Shelf(id: def.0, title: def.1, icon: def.2, colors: def.3, songs: Array(found.prefix(12)))
+        }
+    }
 
     private func playOrToggle(_ song: Song, in list: [Song]) {
         if player.currentSong?.id == song.id && player.isPlaying {
@@ -231,13 +248,77 @@ struct HomeView: View {
         }
         Vibe.tap()
     }
+}
 
-    private func load() async {
-        do {
-            stats = try await APIClient.stats()
-            errorMessage = nil
-        } catch {
-            errorMessage = "Could not reach the vault. Check your connection and pull to retry."
+// MARK: - Shelf pieces
+
+struct ShelfCard: View {
+    let song: Song
+    var rank: Int? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ArtworkView(url: song.coverURL, size: 140, radius: 14)
+                .overlay(alignment: .topLeading) {
+                    if let rank {
+                        Text("\(rank)")
+                            .font(Theme.display(12, .black))
+                            .foregroundStyle(rank == 1 ? .black : .white)
+                            .frame(width: 24, height: 24)
+                            .background(Circle().fill(rank == 1 ? Theme.gold : Color.black.opacity(0.55)))
+                            .padding(6)
+                    }
+                }
+            Text(song.title)
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(Theme.primaryText)
+                .lineLimit(2)
+                .frame(height: 36, alignment: .top)
+            Text(song.artist)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondaryText)
+                .lineLimit(1)
         }
+        .frame(width: 140, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+struct ShelfSkeleton: View {
+    @State private var pulse = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Theme.raised)
+                    .frame(width: 14, height: 14)
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Theme.raised)
+                    .frame(width: 110, height: 13)
+            }
+            .padding(.vertical, 3)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        VStack(alignment: .leading, spacing: 8) {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Theme.raised)
+                                .frame(width: 140, height: 140)
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(Theme.raised)
+                                .frame(width: 100, height: 12)
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(Theme.raised)
+                                .frame(width: 66, height: 10)
+                        }
+                    }
+                }
+            }
+        }
+        .opacity(pulse ? 0.45 : 1)
+        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+        .onAppear { pulse = true }
     }
 }
