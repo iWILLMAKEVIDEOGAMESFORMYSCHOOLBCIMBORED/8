@@ -4,7 +4,6 @@ struct Shelf: Identifiable {
     let id: String
     let title: String
     let icon: String
-    let colors: [Color]
     let songs: [Song]
 }
 
@@ -15,6 +14,7 @@ struct HomeView: View {
     @State private var shelves: [Shelf] = []
     @State private var isLoaded = false
     @State private var failed = false
+    @State private var showRadio = false
 
     var body: some View {
         NavigationStack {
@@ -31,17 +31,16 @@ struct HomeView: View {
                         if shelves.isEmpty && stats == nil {
                             emptyBlock
                         }
-                        radioBanner
+                        radioCard
                     } else if failed {
                         errorBlock
                     } else {
                         ShelfSkeleton()
                         ShelfSkeleton()
-                        ShelfSkeleton()
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 10)
                 .padding(.bottom, 30)
             }
             .background(Theme.bg)
@@ -55,21 +54,17 @@ struct HomeView: View {
     private var miniHeader: some View {
         HStack {
             Text("999")
-                .font(Theme.display(16, .black))
+                .font(Theme.display(15, .bold))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 15)
-                .padding(.vertical, 8)
-                .background(
-                    LinearGradient(colors: [Theme.accent, Theme.violet], startPoint: .leading, endPoint: .trailing),
-                    in: Capsule()
-                )
-                .shadow(color: Theme.accent.opacity(0.45), radius: 12, y: 4)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Theme.accent))
             Spacer()
             Image(systemName: "waveform")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 15))
                 .foregroundStyle(Theme.tertiaryText)
         }
-        .padding(.top, 6)
+        .padding(.top, 4)
     }
 
     // MARK: Shelves
@@ -78,8 +73,7 @@ struct HomeView: View {
         Shelf(
             id: "top",
             title: "Most Played",
-            icon: "flame.fill",
-            colors: [Theme.gold, Theme.accent],
+            icon: "flame",
             songs: Array(stats.top_songs.prefix(15).map(\.song))
         )
     }
@@ -88,22 +82,16 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 8) {
                 Image(systemName: shelf.icon)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.leading, 12)
-                Text(shelf.title.uppercased())
-                    .font(.system(size: 13, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(.white)
-                    .padding(.trailing, 13)
-                    .padding(.vertical, 1)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.accent)
+                Text(shelf.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Theme.primaryText)
+                Spacer()
+                Text("\(shelf.songs.count)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.tertiaryText)
             }
-            .padding(.vertical, 7)
-            .background(
-                LinearGradient(colors: shelf.colors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: Capsule()
-            )
-            .shadow(color: shelf.colors[0].opacity(0.35), radius: 10, y: 4)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
@@ -121,58 +109,58 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Radio banner
+    // MARK: Radio card
 
-    private var radioBanner: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(radio.isPlaying ? Theme.danger : Color.white)
-                    .frame(width: 8, height: 8)
-                Text("LIVE")
-                    .font(.system(size: 11, weight: .heavy))
-                    .tracking(2)
-                    .foregroundStyle(.white)
-                Spacer()
-                Text("24/7 vault radio")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.75))
-            }
+    private var radioCard: some View {
+        Button {
+            showRadio = true
+            Vibe.tap()
+        } label: {
             HStack(spacing: 14) {
-                ArtworkView(url: radio.nowPlaying?.song.coverURL, size: 88, radius: 12)
+                ZStack {
+                    Circle().fill(Theme.deep)
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Theme.accent)
+                }
+                .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(radio.nowPlaying?.title ?? "999 RADIO")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                    Text(radio.nowPlaying?.artist ?? "Tune in — the vault never sleeps")
-                        .font(.system(size: 13.5))
-                        .foregroundStyle(Color.white.opacity(0.85))
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(radio.isPlaying ? Theme.danger : Theme.accent)
+                            .frame(width: 7, height: 7)
+                        Text("LIVE")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .tracking(1.5)
+                            .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
+                        Text("999 Radio")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Theme.primaryText)
+                            .padding(.leading, 4)
+                    }
+                    Text(radio.nowPlaying?.title ?? "Now playing — the vault, 24/7")
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Theme.secondaryText)
                         .lineLimit(1)
                 }
                 Spacer()
-                Button {
-                    radio.toggle()
-                    Vibe.tap()
-                } label: {
-                    Image(systemName: radio.isPlaying ? "stop.fill" : "play.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
-                        .frame(width: 58, height: 58)
-                        .background(Circle().fill(.white))
-                        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
+                if radio.isPlaying {
+                    EqualizerBars(playing: true)
                 }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.tertiaryText)
             }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Theme.surface)
+            )
         }
-        .padding(16)
-        .background(
-            LinearGradient(
-                colors: [Theme.accent, Theme.violet, Color(red: 0.24, green: 0.12, blue: 0.44)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
-        )
-        .shadow(color: Theme.accent.opacity(0.35), radius: 22, y: 10)
+        .buttonStyle(RowPress())
+        .fullScreenCover(isPresented: $showRadio) {
+            RadioView()
+        }
     }
 
     // MARK: States
@@ -180,7 +168,7 @@ struct HomeView: View {
     private var errorBlock: some View {
         VStack(spacing: 10) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 26))
+                .font(.system(size: 24))
                 .foregroundStyle(Theme.tertiaryText)
             Text("Could not reach the vault. Check your connection and pull to retry.")
                 .font(.footnote)
@@ -189,7 +177,7 @@ struct HomeView: View {
             Button("Try again") {
                 Task { await load() }
             }
-            .font(.system(size: 13, weight: .semibold))
+            .font(.system(size: 13, weight: .medium))
             .buttonStyle(.bordered)
             .tint(Theme.accent)
         }
@@ -208,35 +196,35 @@ struct HomeView: View {
     // MARK: Data
 
     private func load() async {
-        async let statsTask = APIClient.stats()
-        let songs = await PlayerModel.ensureCatalog()
-        do {
-            let s = try await statsTask
-            stats = s
-            buildShelves(songs)
-            isLoaded = true
-            failed = false
-        } catch {
-            stats = nil
-            failed = true
-            isLoaded = false
+        failed = false
+        Task {
+            if let s = try? await APIClient.stats() {
+                stats = s
+                isLoaded = true
+            } else if shelves.isEmpty {
+                failed = true
+                isLoaded = false
+            }
         }
+        let songs = await PlayerModel.ensureCatalog()
+        buildShelves(songs)
+        if stats != nil { isLoaded = true }
         Task { await radio.refresh() }
     }
 
     private func buildShelves(_ songs: [Song]) {
-        let defs: [(String, String, String, [Color])] = [
-            ("main", "Unreleased", "sparkles", [Theme.violet, Theme.accent]),
-            ("released", "Released", "checkmark.seal.fill", [Theme.accent, Color(red: 1.0, green: 0.5, blue: 0.3)]),
-            ("instrumental", "Instrumentals", "waveform", [Color(red: 0.2, green: 0.72, blue: 1.0), Color(red: 0.1, green: 0.6, blue: 0.8)]),
-            ("stem", "Stems", "slider.horizontal.3", [Color(red: 0.37, green: 0.9, blue: 0.55), Color(red: 0.1, green: 0.72, blue: 0.6)]),
-            ("cut", "Cuts", "scissors", [Color(red: 0.3, green: 0.5, blue: 1.0), Theme.violet]),
-            ("remaster", "Remasters", "star.fill", [Theme.gold, Color(red: 1.0, green: 0.55, blue: 0.3)])
+        let defs: [(String, String, String)] = [
+            ("main", "Unreleased", "sparkles"),
+            ("released", "Released", "checkmark.seal"),
+            ("instrumental", "Instrumentals", "waveform"),
+            ("stem", "Stems", "slider.horizontal.3"),
+            ("cut", "Cuts", "scissors"),
+            ("remaster", "Remasters", "star")
         ]
         shelves = defs.compactMap { def in
             let found = songs.filter { $0.category == def.0 }
             guard !found.isEmpty else { return nil }
-            return Shelf(id: def.0, title: def.1, icon: def.2, colors: def.3, songs: Array(found.prefix(12)))
+            return Shelf(id: def.0, title: def.1, icon: def.2, songs: Array(found.prefix(12)))
         }
     }
 
@@ -262,20 +250,20 @@ struct ShelfCard: View {
                 .overlay(alignment: .topLeading) {
                     if let rank {
                         Text("\(rank)")
-                            .font(Theme.display(12, .black))
-                            .foregroundStyle(rank == 1 ? .black : .white)
+                            .font(Theme.display(12, .bold))
+                            .foregroundStyle(rank == 1 ? Color.black : Color.white)
                             .frame(width: 24, height: 24)
                             .background(Circle().fill(rank == 1 ? Theme.gold : Color.black.opacity(0.55)))
                             .padding(6)
                     }
                 }
             Text(song.title)
-                .font(.system(size: 13.5, weight: .semibold))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.primaryText)
                 .lineLimit(2)
                 .frame(height: 36, alignment: .top)
             Text(song.artist)
-                .font(.system(size: 12))
+                .font(.system(size: 11.5))
                 .foregroundStyle(Theme.secondaryText)
                 .lineLimit(1)
         }
@@ -289,30 +277,21 @@ struct ShelfSkeleton: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Theme.raised)
-                    .frame(width: 14, height: 14)
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Theme.raised)
-                    .frame(width: 110, height: 13)
-            }
-            .padding(.vertical, 3)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        VStack(alignment: .leading, spacing: 8) {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Theme.raised)
-                                .frame(width: 140, height: 140)
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Theme.raised)
-                                .frame(width: 100, height: 12)
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Theme.raised)
-                                .frame(width: 66, height: 10)
-                        }
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Theme.raised)
+                .frame(width: 110, height: 14)
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(0..<3, id: \.self) { _ in
+                    VStack(alignment: .leading, spacing: 8) {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Theme.raised)
+                            .frame(width: 140, height: 140)
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Theme.raised)
+                            .frame(width: 100, height: 12)
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Theme.raised)
+                            .frame(width: 66, height: 10)
                     }
                 }
             }

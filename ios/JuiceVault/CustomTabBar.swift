@@ -2,28 +2,28 @@ import SwiftUI
 
 enum VaultTab: String, CaseIterable, Identifiable {
     case home = "home"
-    case vault = "vault"
-    case favorites = "favorites"
+    case search = "search"
+    case profile = "profile"
 
     var id: String { rawValue }
 
     var icon: String {
         switch self {
         case .home: return "house"
-        case .vault: return "music.note.list"
-        case .favorites: return "heart"
+        case .search: return "magnifyingglass"
+        case .profile: return "person.crop.circle"
         }
     }
 
     var selectedIcon: String {
-        icon + (icon.contains("list") ? "" : ".fill")
+        icon + ".fill"
     }
 
     var label: String {
         switch self {
         case .home: return "Home"
-        case .vault: return "Vault"
-        case .favorites: return "Favorites"
+        case .search: return "Search"
+        case .profile: return "Profile"
         }
     }
 }
@@ -36,7 +36,7 @@ struct CustomTabBar: View {
         HStack(spacing: 0) {
             ForEach(VaultTab.allCases) { tab in
                 Button {
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
                         selection = tab
                     }
                     Vibe.tap()
@@ -45,17 +45,17 @@ struct CustomTabBar: View {
                         ZStack {
                             if selection == tab {
                                 Capsule()
-                                    .fill(Theme.accent.opacity(0.16))
-                                    .frame(width: 48, height: 27)
+                                    .fill(Theme.accent.opacity(0.15))
+                                    .frame(width: 46, height: 26)
                                     .matchedGeometryEffect(id: "activePill", in: pill)
                             }
                             Image(systemName: selection == tab ? tab.selectedIcon : tab.icon)
-                                .font(.system(size: 19, weight: .semibold))
+                                .font(.system(size: 19, weight: .medium))
                                 .foregroundStyle(selection == tab ? Theme.accent : Theme.tertiaryText)
-                                .frame(width: 48, height: 27)
+                                .frame(width: 46, height: 26)
                         }
                         Text(tab.label)
-                            .font(.system(size: 10.5, weight: selection == tab ? .bold : .medium))
+                            .font(.system(size: 10.5, weight: selection == tab ? .semibold : .regular))
                             .foregroundStyle(selection == tab ? Theme.primaryText : Theme.tertiaryText)
                     }
                     .frame(maxWidth: .infinity)
@@ -68,7 +68,7 @@ struct CustomTabBar: View {
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.5), radius: 20, y: 8)
+                .shadow(color: .black.opacity(0.35), radius: 18, y: 6)
         )
         .padding(.horizontal, 14)
         .padding(.bottom, 6)

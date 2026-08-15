@@ -1,18 +1,57 @@
 import Foundation
 import AVFoundation
 
+struct Playlist: Identifiable, Codable, Hashable {
+    let id: String
+    var name: String
+    var songIDs: [String]
+}
+
 @MainActor
 final class PlayerModel: ObservableObject {
     static let shared = PlayerModel()
+    static let songsPlaylistID = "songs"
+
     static var catalog: [Song]?
+    private static let catalogURL = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("vault_catalog.json")
 
     static func ensureCatalog() async -> [Song] {
         if let catalog { return catalog }
-        if let songs = try? await APIClient.fetchSongs("/music/list") {
+        if let data = try? Data(contentsOf: catalogURL),
+           let songs = try? JSONDecoder().decode([Song].self, from: data),
+           !songs.isEmpty {
             catalog = songs
+            Task { await refreshCatalog() }
             return songs
         }
-        return catalog ?? []
+        return await fetchAndCacheCatalog()
+    }
+
+    private static func fetchAndCacheCatalog() async -> [Song] {
+        guard let songs = try? await APIClient.fetchSongs("/music/list") else {
+            return catalog ?? []
+        }
+        catalog = songs
+        saveCatalog(songs)
+        return songs
+    }
+
+    private static func refreshCatalog() async {
+        guard let songs = try? await APIClient.fetchSongs("/music/list") else { return }
+        catalog = songs
+        saveCatalog(songs)
+    }
+
+    private static func saveCatalog(_ songs: [Song]) {
+        do {
+            try FileManager.default.createDirectory(
+                at: catalogURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try JSONEncoder().encode(songs).write(to: catalogURL, options: .atomic)
+        } catch {}
     }
 
     @Published var queue: [Song] = []
@@ -24,15 +63,16 @@ final class PlayerModel: ObservableObject {
     let player = AVPlayer()
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
-    private let favoritesKey = "vault.favorites"
+    private let playlistsKey = "vault.playlists"
+    private let legacyFavoritesKey = "vault.favorites"
 
-    @Published var favorites: [String: Song] = [:] {
-        didSet { persistFavorites() }
+    @Published var playlists: [Playlist] = [] {
+        didSet { persistPlaylists() }
     }
 
     private init() {
         setupTimeObserver()
-        loadFavorites()
+        loadPlaylists()
     }
 
     var currentSong: Song? {
@@ -133,27 +173,88 @@ final class PlayerModel: ObservableObject {
         }
     }
 
+    // MARK: Favorites (backed by the "Songs" playlist)
+
     func isFavorite(_ song: Song) -> Bool {
-        favorites[song.id] != nil
+        isInPlaylist(song, playlistID: Self.songsPlaylistID)
     }
 
     func toggleFavorite(_ song: Song) {
-        if favorites[song.id] != nil {
-            favorites.removeValue(forKey: song.id)
+        toggleSong(song, in: Self.songsPlaylistID)
+        if isFavorite(song) { Vibe.success() }
+    }
+
+    func likedCount() -> Int {
+        guard let p = playlists.first(where: { $0.id == Self.songsPlaylistID }) else { return 0 }
+        return p.songIDs.count
+    }
+
+    // MARK: Playlists
+
+    func isInPlaylist(_ song: Song, playlistID: String) -> Bool {
+        playlists.first(where: { $0.id == playlistID })?.songIDs.contains(song.id) == true
+    }
+
+    func toggleSong(_ song: Song, in playlistID: String) {
+        guard let index = playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+        if playlists[index].songIDs.contains(song.id) {
+            playlists[index].songIDs.removeAll { $0 == song.id }
         } else {
-            favorites[song.id] = song
+            playlists[index].songIDs.append(song.id)
         }
     }
 
-    private func loadFavorites() {
-        guard let data = UserDefaults.standard.data(forKey: favoritesKey),
-              let decoded = try? JSONDecoder().decode([String: Song].self, from: data) else { return }
-        favorites = decoded
+    func addSongs(_ ids: [String], to playlistID: String) {
+        guard let index = playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+        for id in ids where !playlists[index].songIDs.contains(id) {
+            playlists[index].songIDs.append(id)
+        }
     }
 
-    private func persistFavorites() {
-        if let data = try? JSONEncoder().encode(favorites) {
-            UserDefaults.standard.set(data, forKey: favoritesKey)
+    func removeSong(_ id: String, from playlistID: String) {
+        guard let index = playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+        playlists[index].songIDs.removeAll { $0 == id }
+    }
+
+    func createPlaylist(named name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        playlists.append(Playlist(id: UUID().uuidString, name: trimmed, songIDs: []))
+    }
+
+    func deletePlaylist(_ id: String) {
+        guard id != Self.songsPlaylistID else { return }
+        playlists.removeAll { $0.id == id }
+    }
+
+    func songs(in playlist: Playlist) -> [Song] {
+        let catalog = Self.catalog ?? []
+        let byID = Dictionary(uniqueKeysWithValues: catalog.map { ($0.id, $0) })
+        return playlist.songIDs.compactMap { byID[$0] }
+    }
+
+    private func loadPlaylists() {
+        if let data = UserDefaults.standard.data(forKey: playlistsKey),
+           let decoded = try? JSONDecoder().decode([Playlist].self, from: data) {
+            playlists = decoded
+        } else {
+            playlists = []
+        }
+        if !playlists.contains(where: { $0.id == Self.songsPlaylistID }) {
+            var seeded: [String] = []
+            if let data = UserDefaults.standard.data(forKey: legacyFavoritesKey),
+               let legacy = try? JSONDecoder().decode([String: Song].self, from: data) {
+                seeded = Array(legacy.keys)
+                UserDefaults.standard.removeObject(forKey: legacyFavoritesKey)
+            }
+            playlists.insert(Playlist(id: Self.songsPlaylistID, name: "Songs", songIDs: seeded), at: 0)
+        }
+        persistPlaylists()
+    }
+
+    private func persistPlaylists() {
+        if let data = try? JSONEncoder().encode(playlists) {
+            UserDefaults.standard.set(data, forKey: playlistsKey)
         }
     }
 
@@ -173,8 +274,26 @@ final class RadioModel: ObservableObject {
     @Published var isLoading = false
 
     let player = AVPlayer()
+    private var beatObserver: Any?
 
     private init() {}
+
+    func attachBeat() {
+        detachBeat()
+        beatObserver = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.5, preferredTimescale: 600),
+            queue: .main
+        ) { _ in
+            Vibe.pulse()
+        }
+    }
+
+    func detachBeat() {
+        if let beatObserver {
+            player.removeTimeObserver(beatObserver)
+            self.beatObserver = nil
+        }
+    }
 
     func refresh() async {
         isLoading = true
@@ -190,12 +309,14 @@ final class RadioModel: ObservableObject {
         if isPlaying {
             player.pause()
             isPlaying = false
+            detachBeat()
         } else {
             PlayerModel.shared.stop()
             let url = URL(string: APIClient.baseURL + "/radio/stream")!
             player.replaceCurrentItem(with: AVPlayerItem(url: url))
             player.play()
             isPlaying = true
+            attachBeat()
             Task { await refresh() }
         }
     }
@@ -203,5 +324,6 @@ final class RadioModel: ObservableObject {
     func stop() {
         player.pause()
         isPlaying = false
+        detachBeat()
     }
 }

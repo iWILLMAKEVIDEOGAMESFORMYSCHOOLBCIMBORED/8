@@ -10,7 +10,7 @@ struct PlayerBarView: View {
                 ArtworkView(url: song.coverURL, size: 40, radius: 8)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(song.title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.primaryText)
                         .lineLimit(1)
                     Text(song.artist)

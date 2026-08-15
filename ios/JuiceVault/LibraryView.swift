@@ -34,7 +34,7 @@ struct LibraryView: View {
                 content
             }
             .background(Theme.bg)
-            .navigationTitle("The Vault")
+            .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search \(allSongs.count) songs")
             .task {

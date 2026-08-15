@@ -1,22 +1,22 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Design system
+// MARK: - Design system (calm)
 
 enum Theme {
-    static let bg = Color(red: 0.043, green: 0.038, blue: 0.075)
-    static let surface = Color(red: 0.075, green: 0.067, blue: 0.110)
-    static let raised = Color(red: 0.110, green: 0.098, blue: 0.153)
-    static let accent = Color(red: 0.98, green: 0.18, blue: 0.59)
-    static let violet = Color(red: 0.55, green: 0.36, blue: 1.0)
-    static let gold = Color(red: 0.99, green: 0.82, blue: 0.45)
-    static let danger = Color(red: 1.0, green: 0.36, blue: 0.38)
+    static let bg = Color(red: 0.050, green: 0.047, blue: 0.075)
+    static let surface = Color(red: 0.085, green: 0.078, blue: 0.120)
+    static let raised = Color(red: 0.120, green: 0.110, blue: 0.160)
+    static let deep = Color(red: 0.150, green: 0.130, blue: 0.225)
+    static let accent = Color(red: 0.70, green: 0.63, blue: 0.95)
+    static let gold = Color(red: 0.93, green: 0.80, blue: 0.55)
+    static let danger = Color(red: 0.85, green: 0.48, blue: 0.50)
     static let primaryText = Color.white
     static let secondaryText = Color.white.opacity(0.58)
     static let tertiaryText = Color.white.opacity(0.34)
     static let hairline = Color.white.opacity(0.06)
 
-    static func display(_ size: CGFloat, _ weight: Font.Weight = .black) -> Font {
+    static func display(_ size: CGFloat, _ weight: Font.Weight = .bold) -> Font {
         .system(size: size, weight: weight, design: .rounded)
     }
 }
@@ -57,15 +57,9 @@ struct ArtworkView: View {
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
             if size >= 120 {
-                VStack(spacing: 2) {
-                    Text("999")
-                        .font(Theme.display(size * 0.26, .black))
-                        .foregroundStyle(Color.white.opacity(0.75))
-                    Text("VAULT")
-                        .font(.system(size: 9, weight: .bold))
-                        .tracking(4)
-                        .foregroundStyle(Color.white.opacity(0.40))
-                }
+                Text("999")
+                    .font(Theme.display(size * 0.24, .bold))
+                    .foregroundStyle(Color.white.opacity(0.70))
             }
         }
     }
@@ -77,7 +71,7 @@ struct EqualizerBars: View {
     let playing: Bool
     @State private var phase = false
 
-    private let heights: [CGFloat] = [13, 6.5, 10]
+    private let heights: [CGFloat] = [12, 6, 9]
 
     var body: some View {
         HStack(alignment: .center, spacing: 2.5) {
@@ -121,14 +115,14 @@ struct SongRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ArtworkView(url: song.coverURL, size: 48, radius: 12)
+            ArtworkView(url: song.coverURL, size: 46, radius: 10)
             VStack(alignment: .leading, spacing: 3) {
                 Text(song.title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(isCurrent ? Theme.accent : Theme.primaryText)
                     .lineLimit(1)
                 Text(subtitle)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12.5))
                     .foregroundStyle(Theme.secondaryText)
                     .lineLimit(1)
             }
@@ -153,28 +147,6 @@ struct SongRow: View {
     }
 }
 
-// MARK: - Section header
-
-struct SectionHeader: View {
-    let title: String
-    var trailing: String? = nil
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(title.uppercased())
-                .font(.system(size: 13, weight: .bold))
-                .tracking(1.2)
-                .foregroundStyle(Theme.primaryText)
-            Spacer()
-            if let trailing {
-                Text(trailing)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.tertiaryText)
-            }
-        }
-    }
-}
-
 // MARK: - Loading placeholders
 
 struct SkeletonRow: View {
@@ -183,9 +155,9 @@ struct SkeletonRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Theme.raised)
-                .frame(width: 48, height: 48)
+                .frame(width: 46, height: 46)
             VStack(alignment: .leading, spacing: 7) {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(Theme.raised)
@@ -219,6 +191,9 @@ struct RowPress: ButtonStyle {
 enum Vibe {
     static func tap() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+    static func pulse() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
     static func success() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)

@@ -21,13 +21,17 @@ struct JuiceVaultApp: App {
                     switch tab {
                     case .home:
                         HomeView()
-                    case .vault:
+                            .transition(.opacity)
+                    case .search:
                         LibraryView()
-                    case .favorites:
-                        FavoritesView()
+                            .transition(.opacity)
+                    case .profile:
+                        ProfileView()
+                            .transition(.opacity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(.easeOut(duration: 0.18), value: tab)
 
                 if player.currentSong != nil {
                     PlayerBarView(showFullPlayer: $showFullPlayer)
