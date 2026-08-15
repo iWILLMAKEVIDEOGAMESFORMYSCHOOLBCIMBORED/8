@@ -20,11 +20,15 @@ final class PlayerModel: ObservableObject {
 
     static func ensureCatalog() async -> [Song] {
         if let catalog { return catalog }
-        if let data = try? Data(contentsOf: catalogURL),
-           let songs = try? JSONDecoder().decode([Song].self, from: data),
-           !songs.isEmpty {
-            catalog = songs
+        let cached: [Song]? = await Task.detached {
+            guard let data = try? Data(contentsOf: catalogURL),
+                  let songs = try? JSONDecoder().decode([Song].self, from: data),
+                  !songs.isEmpty else { return nil }
             return songs
+        }.value
+        if let cached {
+            catalog = cached
+            return cached
         }
         return await fetchAndCacheCatalog()
     }
@@ -34,27 +38,30 @@ final class PlayerModel: ObservableObject {
             return catalog ?? []
         }
         catalog = songs
-        saveCatalog(songs)
+        await cacheToDisk(songs)
         return songs
     }
 
     static func refreshCatalog() async -> [Song] {
-        guard let songs = try? await APIClient.fetchSongs("/music/list") else {
-            return catalog ?? []
-        }
-        catalog = songs
-        saveCatalog(songs)
-        return songs
+        let fresh: [Song]? = await Task.detached {
+            try? await APIClient.fetchSongs("/music/list")
+        }.value
+        guard let fresh, !fresh.isEmpty else { return catalog ?? [] }
+        catalog = fresh
+        await cacheToDisk(fresh)
+        return fresh
     }
 
-    private static func saveCatalog(_ songs: [Song]) {
-        do {
-            try FileManager.default.createDirectory(
-                at: catalogURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            try JSONEncoder().encode(songs).write(to: catalogURL, options: .atomic)
-        } catch {}
+    private static func cacheToDisk(_ songs: [Song]) async {
+        await Task.detached {
+            do {
+                try FileManager.default.createDirectory(
+                    at: catalogURL.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try JSONEncoder().encode(songs).write(to: catalogURL, options: .atomic)
+            } catch {}
+        }.value
     }
 
     @Published var queue: [Song] = []
@@ -232,7 +239,7 @@ final class PlayerModel: ObservableObject {
 
     func songs(in playlist: Playlist) -> [Song] {
         let catalog = Self.catalog ?? []
-        let byID = Dictionary(uniqueKeysWithValues: catalog.map { ($0.id, $0) })
+        let byID = catalog.reduce(into: [String: Song]()) { $0[$1.id] = $1 }
         return playlist.songIDs.compactMap { byID[$0] }
     }
 

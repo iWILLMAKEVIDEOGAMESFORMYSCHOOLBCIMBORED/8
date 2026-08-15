@@ -27,6 +27,30 @@ enum ArtworkCache {
     static let memory = NSCache<NSURL, UIImage>()
 }
 
+actor ArtworkLoader {
+    static let shared = ArtworkLoader()
+    private var running = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private let maxConcurrent = 6
+
+    func acquire() async {
+        if running < maxConcurrent {
+            running += 1
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+        running += 1
+    }
+
+    func release() {
+        running -= 1
+        if !waiters.isEmpty {
+            let next = waiters.removeFirst()
+            next.resume()
+        }
+    }
+}
+
 struct ArtworkView: View {
     let url: URL?
     var size: CGFloat = 48
@@ -60,6 +84,8 @@ struct ArtworkView: View {
             image = hit
             return
         }
+        await ArtworkLoader.shared.acquire()
+        defer { Task { await ArtworkLoader.shared.release() } }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             guard !Task.isCancelled, let img = UIImage(data: data) else { return }

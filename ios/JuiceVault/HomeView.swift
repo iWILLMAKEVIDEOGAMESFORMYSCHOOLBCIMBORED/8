@@ -94,7 +94,7 @@ struct HomeView: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
+                LazyHStack(alignment: .top, spacing: 14) {
                     ForEach(Array(shelf.songs.enumerated()), id: \.element.id) { index, song in
                         Button {
                             playOrToggle(song, in: shelf.songs)
