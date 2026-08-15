@@ -231,10 +231,19 @@ struct HomeView: View {
                 isLoaded = false
             }
         }
-        let songs = await PlayerModel.syncCatalog()
+        let songs = await PlayerModel.ensureCatalog()
         buildShelves(songs)
         if stats != nil { isLoaded = true }
+        refreshInBackground()
         Task { await radio.refresh() }
+    }
+
+    private func refreshInBackground() {
+        Task {
+            let fresh = await PlayerModel.refreshCatalog()
+            guard fresh.count != shelves.reduce(0) { $0 + $1.songs.count } else { return }
+            buildShelves(fresh)
+        }
     }
 
     private func buildShelves(_ songs: [Song]) {

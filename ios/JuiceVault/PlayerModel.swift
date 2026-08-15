@@ -38,17 +38,13 @@ final class PlayerModel: ObservableObject {
         return songs
     }
 
-    private static func refreshCatalog() async -> [Song] {
-        guard let songs = try? await APIClient.fetchSongs("/music/list") else { return catalog ?? [] }
+    static func refreshCatalog() async -> [Song] {
+        guard let songs = try? await APIClient.fetchSongs("/music/list") else {
+            return catalog ?? []
+        }
         catalog = songs
         saveCatalog(songs)
         return songs
-    }
-
-    static func syncCatalog() async -> [Song] {
-        let loaded = await ensureCatalog()
-        let fresh = await refreshCatalog()
-        return fresh.isEmpty ? loaded : fresh
     }
 
     private static func saveCatalog(_ songs: [Song]) {

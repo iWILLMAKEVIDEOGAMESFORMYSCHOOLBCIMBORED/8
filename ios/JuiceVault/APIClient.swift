@@ -15,7 +15,7 @@ enum APIClient {
             guard let url = URL(string: base + path) else { continue }
             var request = URLRequest(url: url)
             request.setValue("JuiceVault-iOS/1.0", forHTTPHeaderField: "User-Agent")
-            request.timeoutInterval = 60
+            request.timeoutInterval = 12
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {

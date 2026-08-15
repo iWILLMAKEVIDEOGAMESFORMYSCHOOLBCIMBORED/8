@@ -23,31 +23,49 @@ enum Theme {
 
 // MARK: - Artwork
 
+enum ArtworkCache {
+    static let memory = NSCache<NSURL, UIImage>()
+}
+
 struct ArtworkView: View {
     let url: URL?
     var size: CGFloat = 48
     var radius: CGFloat = 12
-    @State private var showImage = false
+    @State private var image: UIImage?
 
     var body: some View {
         ZStack {
             placeholder
-            AsyncImage(url: url) { phase in
-                if case .success(let image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .onAppear { showImage = true }
-                } else {
-                    Color.clear
-                }
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
             }
-            .opacity(showImage ? 1 : 0)
-            .animation(.easeOut(duration: 0.25), value: showImage)
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+        .task(id: url) {
+            await load()
+        }
+    }
+
+    private func load() async {
+        guard let url else {
+            image = nil
+            return
+        }
+        if let hit = ArtworkCache.memory.object(forKey: url as NSURL) {
+            image = hit
+            return
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard !Task.isCancelled, let img = UIImage(data: data) else { return }
+            ArtworkCache.memory.setObject(img, forKey: url as NSURL)
+            image = img
+        } catch {}
     }
 
     private var placeholder: some View {

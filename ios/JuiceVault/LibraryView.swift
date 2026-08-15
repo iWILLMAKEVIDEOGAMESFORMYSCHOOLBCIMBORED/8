@@ -178,7 +178,7 @@ struct LibraryView: View {
     private func loadAll() async {
         isLoading = true
         errorMessage = nil
-        let songs = await PlayerModel.syncCatalog()
+        let songs = await PlayerModel.ensureCatalog()
         if songs.isEmpty {
             errorMessage = "Could not load the vault."
         } else {
@@ -186,6 +186,11 @@ struct LibraryView: View {
             applyFilter()
         }
         isLoading = false
+        let fresh = await PlayerModel.refreshCatalog()
+        if !fresh.isEmpty {
+            allSongs = fresh
+            applyFilter()
+        }
     }
 
     private func runSearch(_ text: String) async {
