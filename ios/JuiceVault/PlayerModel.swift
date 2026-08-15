@@ -272,27 +272,43 @@ final class RadioModel: ObservableObject {
     @Published var isPlaying = false
     @Published var nowPlaying: RadioCurrent?
     @Published var isLoading = false
+    /// Flips on every beat so views can sync thump animations.
+    @Published var beatPhase = false
 
     let player = AVPlayer()
-    private var beatObserver: Any?
+    private var beatTimer: Timer?
+    private var beatCount = 0
+    private let bpm: Double = 92
+    private let heavy = UIImpactFeedbackGenerator(style: .heavy)
+    private let soft = UIImpactFeedbackGenerator(style: .light)
 
     private init() {}
 
     func attachBeat() {
         detachBeat()
-        beatObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.5, preferredTimescale: 600),
-            queue: .main
-        ) { _ in
-            Vibe.pulse()
+        beatCount = 0
+        beatPhase = false
+        heavy.prepare()
+        soft.prepare()
+        beatTimer = Timer.scheduledTimer(withTimeInterval: 60.0 / bpm, repeats: true) { [weak self] _ in
+            self?.fireBeat()
         }
     }
 
-    func detachBeat() {
-        if let beatObserver {
-            player.removeTimeObserver(beatObserver)
-            self.beatObserver = nil
+    private func fireBeat() {
+        beatCount += 1
+        let beat = ((beatCount - 1) % 4) + 1
+        if beat == 1 {
+            heavy.impactOccurred(intensity: 1.0)
+        } else {
+            soft.impactOccurred(intensity: beat == 3 ? 0.7 : 0.45)
         }
+        beatPhase.toggle()
+    }
+
+    func detachBeat() {
+        beatTimer?.invalidate()
+        beatTimer = nil
     }
 
     func refresh() async {

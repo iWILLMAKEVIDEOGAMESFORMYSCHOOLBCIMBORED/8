@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct RadioView: View {
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var radio = RadioModel.shared
     @State private var shake = false
+    @State private var thump = false
     @State private var bigWaves = false
 
     var body: some View {
@@ -14,46 +14,23 @@ struct RadioView: View {
                 .ignoresSafeArea()
 
             LinearGradient(
-                colors: [.clear, Theme.bg.opacity(0.92)],
+                colors: [.clear, Theme.bg.opacity(0.93)],
                 startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                HStack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(Theme.primaryText)
-                            .frame(width: 34, height: 34)
-                            .background(Circle().fill(Color.black.opacity(0.4)))
-                    }
-                    Spacer()
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(radio.isPlaying ? Theme.danger : Theme.accent)
-                            .frame(width: 7, height: 7)
-                        Text("LIVE")
-                            .font(.system(size: 11, weight: .semibold))
-                            .tracking(1.5)
-                            .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
-                        Text("999 Radio")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.primaryText)
-                    }
-                    Spacer()
-                    Color.clear.frame(width: 34, height: 34)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 14)
+                liveHeader
 
                 Spacer(minLength: 10)
 
                 VStack(spacing: 18) {
-                    ArtworkView(url: radio.nowPlaying?.song.coverURL, size: 240, radius: 22)
-                        .shadow(color: .black.opacity(0.5), radius: 30, y: 14)
+                    ZStack {
+                        ArtworkView(url: radio.nowPlaying?.song.coverURL, size: 240, radius: 22)
+                            .shadow(color: .black.opacity(0.5), radius: 30, y: 14)
+                    }
+                    .scaleEffect(thump ? 1.045 : 1.0)
+                    .animation(.easeOut(duration: 0.12), value: thump)
 
                     VStack(spacing: 7) {
                         Text(radio.nowPlaying?.title ?? "999 Radio")
@@ -102,14 +79,29 @@ struct RadioView: View {
         }
         .onAppear {
             shake = true
-            if radio.isPlaying { radio.attachBeat() }
+            thump = false
         }
-        .onChange(of: radio.isPlaying) { playing in
-            if playing { radio.attachBeat() } else { radio.detachBeat() }
+        .onChange(of: radio.beatPhase) { _ in
+            withAnimation(.easeOut(duration: 0.12)) {
+                thump.toggle()
+            }
         }
-        .onDisappear {
-            radio.detachBeat()
+    }
+
+    private var liveHeader: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(radio.isPlaying ? Theme.danger : Theme.accent)
+                .frame(width: 7, height: 7)
+            Text("LIVE")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.5)
+                .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
+            Text("999 Radio")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.primaryText)
         }
+        .padding(.top, 18)
     }
 
     private var backgroundLayer: some View {
@@ -121,22 +113,38 @@ struct RadioView: View {
                             image
                                 .resizable()
                                 .scaledToFill()
-                                .blur(radius: 40)
+                                .blur(radius: 46)
                         } else {
-                            Theme.deep
+                            fallbackBackdrop
                         }
                     }
                 } else {
-                    Theme.deep
+                    fallbackBackdrop
                 }
             }
-            .frame(width: geo.size.width * 1.25, height: geo.size.height * 1.25)
-            .offset(x: shake ? 10 : -10, y: shake ? -6 : 6)
-            .animation(
-                .easeInOut(duration: 0.5).repeatForever(autoreverses: true),
-                value: shake
+            .frame(width: geo.size.width * 1.3, height: geo.size.height * 1.3)
+            .offset(x: shake ? 14 : -14, y: shake ? -8 : 8)
+            .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: shake)
+            .scaleEffect(thump ? 1.05 : 0.965)
+            .animation(.easeOut(duration: 0.12), value: thump)
+            .opacity(0.62)
+        }
+    }
+
+    private var fallbackBackdrop: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Theme.deep, Theme.bg],
+                startPoint: .topLeading, endPoint: .bottomTrailing
             )
-            .opacity(0.55)
+            RadialGradient(
+                colors: [Theme.accent.opacity(0.30), .clear],
+                center: .top, startRadius: 10, endRadius: 480
+            )
+            Text("999")
+                .font(Theme.display(240, .bold))
+                .foregroundStyle(Color.white.opacity(0.05))
+                .rotationEffect(.degrees(-14))
         }
     }
 

@@ -20,10 +20,13 @@ struct JuiceVaultApp: App {
                     Theme.bg.ignoresSafeArea()
                     switch tab {
                     case .home:
-                        HomeView()
+                        HomeView(onOpenRadio: { tab = .radio })
                             .transition(.opacity)
                     case .search:
                         LibraryView()
+                            .transition(.opacity)
+                    case .radio:
+                        RadioView()
                             .transition(.opacity)
                     case .profile:
                         ProfileView()

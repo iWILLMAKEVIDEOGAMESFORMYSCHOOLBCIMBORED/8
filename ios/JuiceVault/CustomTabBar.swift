@@ -3,6 +3,7 @@ import SwiftUI
 enum VaultTab: String, CaseIterable, Identifiable {
     case home = "home"
     case search = "search"
+    case radio = "radio"
     case profile = "profile"
 
     var id: String { rawValue }
@@ -11,18 +12,23 @@ enum VaultTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "house"
         case .search: return "magnifyingglass"
+        case .radio: return "dot.radiowaves.left.and.right"
         case .profile: return "person.crop.circle"
         }
     }
 
     var selectedIcon: String {
-        icon + ".fill"
+        switch self {
+        case .radio: return "dot.radiowaves.left.and.right"
+        default: return icon + ".fill"
+        }
     }
 
     var label: String {
         switch self {
         case .home: return "Home"
         case .search: return "Search"
+        case .radio: return "Radio"
         case .profile: return "Profile"
         }
     }

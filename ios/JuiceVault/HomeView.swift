@@ -14,13 +14,14 @@ struct HomeView: View {
     @State private var shelves: [Shelf] = []
     @State private var isLoaded = false
     @State private var failed = false
-    @State private var showRadio = false
+    var onOpenRadio: () -> Void = {}
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     miniHeader
+                    radioHero
                     if isLoaded {
                         if let stats {
                             shelfSection(mostPlayedShelf(stats))
@@ -31,7 +32,6 @@ struct HomeView: View {
                         if shelves.isEmpty && stats == nil {
                             emptyBlock
                         }
-                        radioCard
                     } else if failed {
                         errorBlock
                     } else {
@@ -109,57 +109,82 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Radio card
+    // MARK: Radio hero
 
-    private var radioCard: some View {
+    private var radioHero: some View {
         Button {
-            showRadio = true
+            onOpenRadio()
             Vibe.tap()
         } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle().fill(Theme.deep)
-                    Image(systemName: "dot.radiowaves.left.and.right")
-                        .font(.system(size: 24))
-                        .foregroundStyle(Theme.accent)
-                }
-                .frame(width: 56, height: 56)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(radio.isPlaying ? Theme.danger : Theme.accent)
-                            .frame(width: 7, height: 7)
-                        Text("LIVE")
-                            .font(.system(size: 10.5, weight: .semibold))
-                            .tracking(1.5)
-                            .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
-                        Text("999 Radio")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Theme.primaryText)
-                            .padding(.leading, 4)
-                    }
-                    Text(radio.nowPlaying?.title ?? "Now playing — the vault, 24/7")
-                        .font(.system(size: 12.5))
-                        .foregroundStyle(Theme.secondaryText)
-                        .lineLimit(1)
-                }
-                Spacer()
-                if radio.isPlaying {
-                    EqualizerBars(playing: true)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Theme.tertiaryText)
-            }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Theme.surface)
-            )
+                if let url = radio.nowPlaying?.song.coverURL {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .blur(radius: 6)
+                        } else {
+                            heroBackdrop
+                        }
+                    }
+                    .clipped()
+                } else {
+                    heroBackdrop
+                }
+                LinearGradient(
+                    colors: [.clear, Color.black.opacity(0.72)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                HStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(radio.isPlaying ? Theme.danger : Theme.accent)
+                                .frame(width: 7, height: 7)
+                            Text("LIVE")
+                                .font(.system(size: 10.5, weight: .semibold))
+                                .tracking(1.5)
+                                .foregroundStyle(radio.isPlaying ? Theme.danger : Theme.accent)
+                            Text("999 RADIO")
+                                .font(.system(size: 15, weight: .bold))
+                                .tracking(0.4)
+                                .foregroundStyle(.white)
+                        }
+                        Text(radio.nowPlaying.map { "\($0.title) — \($0.artist)" } ?? "Now playing — the vault, 24/7")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.85))
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 52, height: 52)
+                        .background(Circle().fill(.white))
+                }
+                .padding(18)
+            }
+            .frame(height: 146)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(RowPress())
-        .fullScreenCover(isPresented: $showRadio) {
-            RadioView()
+    }
+
+    private var heroBackdrop: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Theme.deep, Theme.bg],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            RadialGradient(
+                colors: [Theme.accent.opacity(0.35), .clear],
+                center: .topTrailing, startRadius: 10, endRadius: 320
+            )
         }
     }
 
