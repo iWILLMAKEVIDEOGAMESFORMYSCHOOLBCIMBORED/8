@@ -231,7 +231,7 @@ struct HomeView: View {
                 isLoaded = false
             }
         }
-        let songs = await PlayerModel.ensureCatalog()
+        let songs = await PlayerModel.syncCatalog()
         buildShelves(songs)
         if stats != nil { isLoaded = true }
         Task { await radio.refresh() }
@@ -249,7 +249,7 @@ struct HomeView: View {
         shelves = defs.compactMap { def in
             let found = songs.filter { $0.category == def.0 }
             guard !found.isEmpty else { return nil }
-            return Shelf(id: def.0, title: def.1, icon: def.2, songs: Array(found.prefix(12)))
+            return Shelf(id: def.0, title: def.1, icon: def.2, songs: found)
         }
     }
 

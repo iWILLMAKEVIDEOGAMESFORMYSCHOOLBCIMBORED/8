@@ -178,7 +178,7 @@ struct LibraryView: View {
     private func loadAll() async {
         isLoading = true
         errorMessage = nil
-        let songs = await PlayerModel.ensureCatalog()
+        let songs = await PlayerModel.syncCatalog()
         if songs.isEmpty {
             errorMessage = "Could not load the vault."
         } else {

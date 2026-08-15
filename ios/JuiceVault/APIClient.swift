@@ -1,7 +1,7 @@
 import Foundation
 
 enum APIClient {
-    static let bases = ["https://api.juicevault.xyz", "https://juicewrldapi.com"]
+    static let bases = ["https://api.juicevault.xyz"]
     static private(set) var baseURL = bases[0]
 
     static let decoder: JSONDecoder = {

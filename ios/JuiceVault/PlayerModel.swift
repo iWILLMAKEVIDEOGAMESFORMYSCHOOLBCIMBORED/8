@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import UIKit
 
 struct Playlist: Identifiable, Codable, Hashable {
     let id: String
@@ -23,7 +24,6 @@ final class PlayerModel: ObservableObject {
            let songs = try? JSONDecoder().decode([Song].self, from: data),
            !songs.isEmpty {
             catalog = songs
-            Task { await refreshCatalog() }
             return songs
         }
         return await fetchAndCacheCatalog()
@@ -38,10 +38,17 @@ final class PlayerModel: ObservableObject {
         return songs
     }
 
-    private static func refreshCatalog() async {
-        guard let songs = try? await APIClient.fetchSongs("/music/list") else { return }
+    private static func refreshCatalog() async -> [Song] {
+        guard let songs = try? await APIClient.fetchSongs("/music/list") else { return catalog ?? [] }
         catalog = songs
         saveCatalog(songs)
+        return songs
+    }
+
+    static func syncCatalog() async -> [Song] {
+        let loaded = await ensureCatalog()
+        let fresh = await refreshCatalog()
+        return fresh.isEmpty ? loaded : fresh
     }
 
     private static func saveCatalog(_ songs: [Song]) {
@@ -291,7 +298,7 @@ final class RadioModel: ObservableObject {
         heavy.prepare()
         soft.prepare()
         beatTimer = Timer.scheduledTimer(withTimeInterval: 60.0 / bpm, repeats: true) { [weak self] _ in
-            self?.fireBeat()
+            Task { @MainActor in self?.fireBeat() }
         }
     }
 
