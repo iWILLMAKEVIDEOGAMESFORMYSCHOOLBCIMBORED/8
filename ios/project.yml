@@ -1,0 +1,53 @@
+name: JuiceVault
+options:
+  bundleIdPrefix: com.juicevault
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+targets:
+  JuiceVault:
+    type: application
+    platform: iOS
+    sources:
+      - JuiceVault
+    info:
+      path: JuiceVault/Info.plist
+      properties:
+        CFBundleDisplayName: 999 Vault
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
+        UIUserInterfaceStyle: Dark
+        ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+        CFBundleIcons:
+          CFBundlePrimaryIcon:
+            CFBundleIconFiles:
+              - AppIcon20x20@2x
+              - AppIcon20x20@3x
+              - AppIcon29x29@2x
+              - AppIcon29x29@3x
+              - AppIcon40x40@2x
+              - AppIcon40x40@3x
+              - AppIcon60x60@2x
+              - AppIcon60x60@3x
+        CFBundleIcons~ipad:
+          CFBundlePrimaryIcon:
+            CFBundleIconFiles:
+              - AppIcon20x20@2x
+              - AppIcon29x29@2x
+              - AppIcon40x40@2x
+              - AppIcon76x76@2x
+              - AppIcon83.5x83.5@2x
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.juicevault.app
+        PRODUCT_NAME: JuiceVault
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_STYLE: Automatic
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "1.0.0"
