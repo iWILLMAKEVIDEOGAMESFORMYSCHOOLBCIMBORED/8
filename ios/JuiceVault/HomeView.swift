@@ -241,7 +241,8 @@ struct HomeView: View {
     private func refreshInBackground() {
         Task {
             let fresh = await PlayerModel.refreshCatalog()
-            guard fresh.count != shelves.reduce(0) { $0 + $1.songs.count } else { return }
+            let currentTotal = shelves.reduce(0) { $0 + $1.songs.count }
+            guard fresh.count != currentTotal else { return }
             buildShelves(fresh)
         }
     }
