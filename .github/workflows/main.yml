@@ -1,0 +1,50 @@
+name: Build IPA
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          for XC in /Applications/Xcode_16.2.app /Applications/Xcode_16.1.app; do
+            if [ -d "$XC" ]; then sudo xcode-select -s "$XC"; echo "Using $XC"; break; fi
+          done
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Remove asset catalog (fixes GitHub runner actool bug)
+        run: rm -rf ios/JuiceVault/Assets.xcassets
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build app
+        working-directory: ios
+        run: |
+          xcodebuild -project JuiceVault.xcodeproj -scheme JuiceVault -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            ASSETCATALOG_COMPILER_APPICON_NAME= \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Package IPA
+        run: |
+          APP_PATH=$(find ios/build/Build/Products/Release-iphoneos -name '*.app' -maxdepth 1 | head -1)
+          rm -rf Payload
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qry JuiceVault.ipa Payload/
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: JuiceVault.ipa
+          if-no-files-found: error
