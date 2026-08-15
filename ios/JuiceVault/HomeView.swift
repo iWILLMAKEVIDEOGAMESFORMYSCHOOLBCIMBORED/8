@@ -44,7 +44,7 @@ struct HomeView: View {
             Text("V A U L T")
                 .font(.system(size: 13, weight: .bold))
                 .tracking(6)
-                .foregroundStyle(Theme.accent)
+                .foregroundStyle(Theme.violet)
             Text("Every era. Every leak. All 999s.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.secondaryText)

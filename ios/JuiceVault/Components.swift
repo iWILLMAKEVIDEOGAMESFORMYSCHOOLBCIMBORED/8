@@ -4,10 +4,11 @@ import UIKit
 // MARK: - Design system
 
 enum Theme {
-    static let bg = Color(red: 0.039, green: 0.035, blue: 0.063)
+    static let bg = Color(red: 0.043, green: 0.038, blue: 0.075)
     static let surface = Color(red: 0.075, green: 0.067, blue: 0.110)
     static let raised = Color(red: 0.110, green: 0.098, blue: 0.153)
-    static let accent = Color(red: 0.486, green: 0.361, blue: 1.0)
+    static let accent = Color(red: 0.98, green: 0.18, blue: 0.59)
+    static let violet = Color(red: 0.55, green: 0.36, blue: 1.0)
     static let gold = Color(red: 0.99, green: 0.82, blue: 0.45)
     static let danger = Color(red: 1.0, green: 0.36, blue: 0.38)
     static let primaryText = Color.white

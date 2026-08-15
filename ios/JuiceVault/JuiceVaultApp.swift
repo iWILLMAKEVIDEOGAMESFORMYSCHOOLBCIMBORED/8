@@ -5,6 +5,7 @@ import AVFoundation
 struct JuiceVaultApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @ObservedObject private var player = PlayerModel.shared
+    @State private var tab: VaultTab = .home
     @State private var showFullPlayer = false
 
     init() {
@@ -15,17 +16,18 @@ struct JuiceVaultApp: App {
     var body: some Scene {
         WindowGroup {
             VStack(spacing: 0) {
-                TabView {
-                    HomeView()
-                        .tabItem { Label("Home", systemImage: "house.fill") }
-                    LibraryView()
-                        .tabItem { Label("Vault", systemImage: "music.note.list") }
-                    FavoritesView()
-                        .tabItem { Label("Favorites", systemImage: "heart.fill") }
+                ZStack {
+                    Theme.bg.ignoresSafeArea()
+                    switch tab {
+                    case .home:
+                        HomeView()
+                    case .vault:
+                        LibraryView()
+                    case .favorites:
+                        FavoritesView()
+                    }
                 }
-                .tint(Theme.accent)
-                .toolbarBackground(Theme.bg, for: .tabBar)
-                .toolbarBackground(.visible, for: .tabBar)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if player.currentSong != nil {
                     PlayerBarView(showFullPlayer: $showFullPlayer)
@@ -35,6 +37,9 @@ struct JuiceVaultApp: App {
             .background(Theme.bg)
             .preferredColorScheme(.dark)
             .animation(.spring(response: 0.38, dampingFraction: 0.86), value: player.currentSong != nil)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                CustomTabBar(selection: $tab)
+            }
             .sheet(isPresented: $showFullPlayer) {
                 FullPlayerView()
                     .presentationDragIndicator(.hidden)
