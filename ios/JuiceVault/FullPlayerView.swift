@@ -12,7 +12,7 @@ struct FullPlayerView: View {
 
     var body: some View {
         ZStack {
-            Color.vaultBg.ignoresSafeArea()
+            Theme.bg.ignoresSafeArea()
 
             if let url = player.currentSong?.coverURL {
                 AsyncImage(url: url) { phase in
@@ -20,19 +20,19 @@ struct FullPlayerView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                            .blur(radius: 70)
-                            .opacity(0.4)
+                            .blur(radius: 60)
+                            .opacity(0.35)
                     }
                 }
                 .ignoresSafeArea()
             }
             LinearGradient(
-                colors: [.clear, Color.vaultBg.opacity(0.9)],
+                colors: [.clear, Theme.bg.opacity(0.95)],
                 startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 18) {
+            VStack(spacing: 0) {
                 HStack {
                     Capsule()
                         .fill(Color.white.opacity(0.18))
@@ -43,73 +43,66 @@ struct FullPlayerView: View {
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 17, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.primaryText)
                             .frame(width: 34, height: 34)
-                            .background(
-                                Circle()
-                                    .fill(Color.vaultCard)
-                                    .overlay(Circle().strokeBorder(Color.vaultStroke))
-                            )
+                            .background(Circle().fill(Color.black.opacity(0.35)))
                     }
                 }
-                .padding(.top, 8)
+                .padding(.top, 12)
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 12)
 
-                bigArt
+                Group {
+                    if let url = player.currentSong?.coverURL {
+                        ArtworkView(url: url, size: 300, radius: 24)
+                    } else {
+                        ArtworkView(url: nil, size: 300, radius: 24)
+                    }
+                }
+                .shadow(color: .black.opacity(0.45), radius: 36, y: 16)
 
-                songInfo
+                Spacer(minLength: 32)
+
+                VStack(spacing: 8) {
+                    Text(player.currentSong?.title ?? "")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Theme.primaryText)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                    HStack(spacing: 8) {
+                        if player.isPlaying {
+                            EqualizerBars(playing: true)
+                        }
+                        Text(player.currentSong?.artist ?? "")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.secondaryText)
+                            .lineLimit(1)
+                            .padding(.leading, player.isPlaying ? 2 : 0)
+                    }
+                }
+                .padding(.horizontal, 20)
+
+                Spacer(minLength: 24)
 
                 slider
+                    .padding(.horizontal, 26)
 
                 controls
+                    .padding(.top, 14)
 
                 actionRow
+                    .padding(.top, 22)
 
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 26)
-            .padding(.bottom, 20)
+            .padding(.bottom, 24)
         }
+        .id(player.currentSong?.id ?? "none")
+        .animation(.easeInOut(duration: 0.22), value: player.currentSong?.id)
         .sheet(isPresented: $showShareSheet) {
             if let shareURL {
                 ShareSheet(items: [shareURL])
-            }
-        }
-    }
-
-    private var bigArt: some View {
-        Group {
-            if let url = player.currentSong?.coverURL {
-                ArtworkView(url: url, size: 300, corner: 28)
-            } else {
-                ArtworkView(url: nil, size: 300, corner: 28)
-            }
-        }
-        .shadow(color: Color.vaultAccent.opacity(0.35), radius: 34, y: 14)
-    }
-
-    private var songInfo: some View {
-        VStack(spacing: 6) {
-            Text(player.currentSong?.title ?? "")
-                .font(.title2.bold())
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-            HStack(spacing: 8) {
-                if player.isPlaying {
-                    EqualizerBars(playing: true)
-                }
-                Text(player.currentSong?.artist ?? "")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.vaultAccent)
-                    .lineLimit(1)
-            }
-            if let album = player.currentSong?.album {
-                Text(album)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
         }
     }
@@ -133,41 +126,41 @@ struct FullPlayerView: View {
                     }
                 }
             )
-            .tint(Color.vaultAccent)
+            .tint(Theme.accent)
             HStack {
                 Text(player.formattedTime(player.currentTime))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                 Spacer()
                 Text(player.formattedTime(player.duration))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
         }
     }
 
     private var controls: some View {
-        HStack(spacing: 44) {
+        HStack(spacing: 46) {
             Button {
                 player.previous()
                 Vibe.tap()
             } label: {
                 Image(systemName: "backward.fill")
-                    .font(.system(size: 27))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 26))
+                    .foregroundStyle(Theme.primaryText.opacity(0.9))
+                    .frame(width: 40, height: 40)
             }
             Button {
                 player.togglePlay()
                 Vibe.tap()
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 76, height: 76)
+                    .font(.system(size: 29, weight: .bold))
+                    .foregroundStyle(Color.white)
+                    .frame(width: 74, height: 74)
                     .background(
                         Circle()
-                            .fill(LinearGradient.vaultGradient)
-                            .shadow(color: Color.vaultAccent.opacity(0.5), radius: 20, y: 8)
+                            .fill(Theme.accent)
+                            .shadow(color: Theme.accent.opacity(0.35), radius: 18, y: 8)
                     )
             }
             Button {
@@ -175,12 +168,11 @@ struct FullPlayerView: View {
                 Vibe.tap()
             } label: {
                 Image(systemName: "forward.fill")
-                    .font(.system(size: 27))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 26))
+                    .foregroundStyle(Theme.primaryText.opacity(0.9))
+                    .frame(width: 40, height: 40)
             }
         }
-        .padding(.top, 6)
     }
 
     private var actionRow: some View {
@@ -192,13 +184,12 @@ struct FullPlayerView: View {
                 }
             } label: {
                 Image(systemName: player.currentSong.map { player.isFavorite($0) } == true ? "heart.fill" : "heart")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(Color.vaultGold)
-                    .frame(width: 52, height: 46)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.gold)
+                    .frame(width: 52, height: 44)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.vaultCard)
-                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.vaultStroke))
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .fill(Theme.raised)
                     )
             }
 
@@ -207,7 +198,7 @@ struct FullPlayerView: View {
             } label: {
                 HStack(spacing: 8) {
                     if isDownloading {
-                        ProgressView().tint(.white).scaleEffect(0.85)
+                        ProgressView().tint(.white).scaleEffect(0.8)
                     } else {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 14, weight: .semibold))
@@ -216,13 +207,12 @@ struct FullPlayerView: View {
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 46)
+                .frame(height: 44)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.vaultCard)
-                        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.vaultStroke))
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .fill(Theme.raised)
                 )
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.primaryText)
             }
             .disabled(isDownloading)
         }

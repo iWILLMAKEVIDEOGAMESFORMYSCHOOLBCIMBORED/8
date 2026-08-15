@@ -7,15 +7,15 @@ struct PlayerBarView: View {
     var body: some View {
         if let song = player.currentSong {
             HStack(spacing: 12) {
-                ArtworkView(url: song.coverURL, size: 44, corner: 10)
-                VStack(alignment: .leading, spacing: 3) {
+                ArtworkView(url: song.coverURL, size: 40, radius: 8)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(song.title)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.primaryText)
                         .lineLimit(1)
                     Text(song.artist)
                         .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .lineLimit(1)
                 }
                 Spacer()
@@ -28,40 +28,36 @@ struct PlayerBarView: View {
                     Vibe.tap()
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(width: 38, height: 38)
-                        .background(Circle().fill(LinearGradient.vaultGradient))
+                        .background(Circle().fill(Theme.accent))
                 }
                 Button {
                     player.next()
                     Vibe.tap()
                 } label: {
                     Image(systemName: "forward.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.primaryText.opacity(0.85))
                         .frame(width: 30, height: 30)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12))
-                    )
-            )
-            .overlay(alignment: .bottom) {
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .top) {
                 GeometryReader { geo in
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
+                    ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(LinearGradient.vaultGradient)
-                            .frame(width: geo.size.width * barProgress, height: 2.5)
+                            .fill(Color.white.opacity(0.12))
+                            .frame(height: 2)
+                        Capsule()
+                            .fill(Theme.accent)
+                            .frame(width: geo.size.width * barProgress, height: 2)
                     }
                 }
+                .frame(height: 2)
                 .allowsHitTesting(false)
             }
             .contentShape(Rectangle())
@@ -69,8 +65,6 @@ struct PlayerBarView: View {
                 showFullPlayer = true
                 Vibe.tap()
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 6)
         }
     }
 

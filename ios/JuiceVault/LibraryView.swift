@@ -33,7 +33,7 @@ struct LibraryView: View {
                 categoryChips
                 content
             }
-            .background(Color.vaultBg)
+            .background(Theme.bg)
             .navigationTitle("The Vault")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search \(allSongs.count) songs")
@@ -61,29 +61,23 @@ struct LibraryView: View {
                 ForEach(categories, id: \.id) { cat in
                     Button {
                         selectedCategory = cat.id
-                        Vibe.tap()
                     } label: {
                         Text(cat.label)
-                            .font(.system(size: 12.5, weight: .semibold))
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 7)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                             .background(
                                 selectedCategory == cat.id
-                                    ? AnyShapeStyle(LinearGradient.vaultGradient)
-                                    : AnyShapeStyle(Color.vaultCard),
+                                    ? AnyShapeStyle(Theme.accent)
+                                    : AnyShapeStyle(Theme.raised),
                                 in: Capsule()
                             )
-                            .overlay(Capsule().strokeBorder(
-                                selectedCategory == cat.id
-                                    ? Color.white.opacity(0.25)
-                                    : Color.vaultStroke
-                            ))
-                            .foregroundStyle(selectedCategory == cat.id ? .white : Color.white.opacity(0.7))
+                            .foregroundStyle(selectedCategory == cat.id ? .white : Theme.secondaryText)
                     }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
         }
     }
 
@@ -92,36 +86,38 @@ struct LibraryView: View {
         if isSearching {
             songList(searchResults)
         } else if isLoading {
-            VStack(spacing: 12) {
-                ProgressView().tint(Color.vaultAccent).scaleEffect(1.2)
-                Text("Opening the vault…")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(0..<8, id: \.self) { _ in
+                        SkeletonRow()
+                    }
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scrollDisabled(true)
         } else if let errorMessage {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 Image(systemName: "tray")
-                    .font(.system(size: 36))
-                    .foregroundStyle(Color.vaultGold)
+                    .font(.system(size: 26))
+                    .foregroundStyle(Theme.tertiaryText)
                 Text(errorMessage)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                 Button("Retry") {
                     Task { await loadAll() }
                 }
+                .font(.system(size: 13, weight: .semibold))
                 .buttonStyle(.bordered)
-                .tint(Color.vaultAccent)
+                .tint(Theme.accent)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filtered.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "music.note")
-                    .font(.system(size: 30))
-                    .foregroundStyle(Color.white.opacity(0.3))
+                    .font(.system(size: 24))
+                    .foregroundStyle(Theme.tertiaryText)
                 Text("Nothing here — try another category.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -133,20 +129,16 @@ struct LibraryView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 Text("\(songs.count) TRACKS")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .tracking(2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.tertiaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                    .padding(.top, 8)
+                    .padding(.bottom, 6)
                 ForEach(songs) { song in
                     Button {
-                        if player.currentSong?.id == song.id && player.isPlaying {
-                            player.togglePlay()
-                        } else {
-                            player.play(song, in: songs)
-                        }
-                        Vibe.tap()
+                        playOrToggle(song, in: songs)
                     } label: {
                         SongRow(
                             song: song,
@@ -154,14 +146,23 @@ struct LibraryView: View {
                             isCurrent: player.currentSong?.id == song.id
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(RowPress())
                     Divider()
-                        .overlay(Color.white.opacity(0.05))
+                        .overlay(Theme.hairline)
                         .padding(.leading, 76)
                 }
             }
             .padding(.bottom, 100)
         }
+    }
+
+    private func playOrToggle(_ song: Song, in list: [Song]) {
+        if player.currentSong?.id == song.id && player.isPlaying {
+            player.togglePlay()
+        } else {
+            player.play(song, in: list)
+        }
+        Vibe.tap()
     }
 
     private func applyFilter() {

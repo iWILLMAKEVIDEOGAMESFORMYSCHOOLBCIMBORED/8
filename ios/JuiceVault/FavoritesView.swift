@@ -11,30 +11,33 @@ struct FavoritesView: View {
         NavigationStack {
             Group {
                 if favs.isEmpty {
-                    VStack(spacing: 14) {
+                    VStack(spacing: 16) {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: 42))
-                            .foregroundStyle(LinearGradient.vaultGlow)
-                            .shadow(color: Color.vaultGold.opacity(0.35), radius: 14)
+                            .font(.system(size: 28))
+                            .foregroundStyle(Theme.gold)
+                            .frame(width: 76, height: 76)
+                            .background(Circle().fill(Theme.raised))
                         Text("No favorites yet")
-                            .font(.title3.bold())
-                            .foregroundStyle(.white)
-                        Text("Tap the heart in the player\nto keep your favorite tracks here.")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Theme.primaryText)
+                        Text("Tap the heart in the player to\nkeep your favorite tracks here.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                             .multilineTextAlignment(.center)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding()
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             Text("\(favs.count) SAVED")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 11, weight: .bold))
                                 .tracking(2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.tertiaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 16)
-                                .padding(.top, 6)
+                                .padding(.top, 8)
+                                .padding(.bottom, 6)
                             ForEach(favs) { song in
                                 Button {
                                     if player.currentSong?.id == song.id && player.isPlaying {
@@ -50,9 +53,9 @@ struct FavoritesView: View {
                                         isCurrent: player.currentSong?.id == song.id
                                     )
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(RowPress())
                                 Divider()
-                                    .overlay(Color.white.opacity(0.05))
+                                    .overlay(Theme.hairline)
                                     .padding(.leading, 76)
                             }
                         }
@@ -60,7 +63,7 @@ struct FavoritesView: View {
                     }
                 }
             }
-            .background(Color.vaultBg)
+            .background(Theme.bg)
             .navigationTitle("Favorites")
         }
     }

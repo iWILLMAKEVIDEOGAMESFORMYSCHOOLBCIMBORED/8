@@ -1,68 +1,92 @@
 import SwiftUI
 import UIKit
 
-extension Color {
-    static let vaultBg = Color(red: 0.035, green: 0.025, blue: 0.075)
-    static let vaultAccent = Color(red: 0.72, green: 0.52, blue: 1.0)
-    static let vaultGold = Color(red: 0.99, green: 0.82, blue: 0.45)
-    static let vaultSub = Color.white.opacity(0.55)
-    static let vaultCard = Color.white.opacity(0.07)
-    static let vaultStroke = Color.white.opacity(0.10)
+// MARK: - Design system
+
+enum Theme {
+    static let bg = Color(red: 0.039, green: 0.035, blue: 0.063)
+    static let surface = Color(red: 0.075, green: 0.067, blue: 0.110)
+    static let raised = Color(red: 0.110, green: 0.098, blue: 0.153)
+    static let accent = Color(red: 0.486, green: 0.361, blue: 1.0)
+    static let gold = Color(red: 0.99, green: 0.82, blue: 0.45)
+    static let danger = Color(red: 1.0, green: 0.36, blue: 0.38)
+    static let primaryText = Color.white
+    static let secondaryText = Color.white.opacity(0.58)
+    static let tertiaryText = Color.white.opacity(0.34)
+    static let hairline = Color.white.opacity(0.06)
+
+    static func display(_ size: CGFloat, _ weight: Font.Weight = .black) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
+    }
 }
 
-extension LinearGradient {
-    static let vaultGradient = LinearGradient(
-        colors: [Color(red: 0.66, green: 0.45, blue: 1.0), Color(red: 0.42, green: 0.22, blue: 0.85)],
-        startPoint: .topLeading, endPoint: .bottomTrailing
-    )
-    static let vaultGlow = LinearGradient(
-        colors: [Color.vaultGold, Color(red: 0.86, green: 0.55, blue: 1.0)],
-        startPoint: .leading, endPoint: .trailing
-    )
-}
+// MARK: - Artwork
 
 struct ArtworkView: View {
     let url: URL?
-    var size: CGFloat = 44
-    var corner: CGFloat = 10
+    var size: CGFloat = 48
+    var radius: CGFloat = 12
+    @State private var showImage = false
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFill()
-            default:
-                ZStack {
-                    LinearGradient(
-                        colors: [Color(red: 0.40, green: 0.26, blue: 0.72), Color(red: 0.13, green: 0.09, blue: 0.30)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    )
+        ZStack {
+            placeholder
+            AsyncImage(url: url) { phase in
+                if case .success(let image) = phase {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .onAppear { showImage = true }
+                } else {
+                    Color.clear
+                }
+            }
+            .opacity(showImage ? 1 : 0)
+            .animation(.easeOut(duration: 0.25), value: showImage)
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(red: 0.16, green: 0.14, blue: 0.24), Color(red: 0.08, green: 0.07, blue: 0.13)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            if size >= 120 {
+                VStack(spacing: 2) {
                     Text("999")
-                        .font(.system(size: size * 0.30, weight: .black))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .font(Theme.display(size * 0.26, .black))
+                        .foregroundStyle(Color.white.opacity(0.75))
+                    Text("VAULT")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(4)
+                        .foregroundStyle(Color.white.opacity(0.40))
                 }
             }
         }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
     }
 }
+
+// MARK: - Now-playing indicator
 
 struct EqualizerBars: View {
     let playing: Bool
     @State private var phase = false
 
-    private let heights: [CGFloat] = [13, 6.5, 10, 7.5]
+    private let heights: [CGFloat] = [13, 6.5, 10]
 
     var body: some View {
         HStack(alignment: .center, spacing: 2.5) {
-            ForEach(0..<4, id: \.self) { i in
+            ForEach(0..<3, id: \.self) { i in
                 Capsule()
-                    .fill(playing ? AnyShapeStyle(Color.vaultAccent) : AnyShapeStyle(Color.white.opacity(0.35)))
+                    .fill(playing ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Color.white.opacity(0.35)))
                     .frame(width: 3.5, height: barHeight(i))
                     .animation(
                         playing
-                            ? .easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(Double(i) * 0.12)
+                            ? .easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(Double(i) * 0.13)
                             : .linear(duration: 0.15),
                         value: phase
                     )
@@ -86,6 +110,8 @@ struct EqualizerBars: View {
     }
 }
 
+// MARK: - List row
+
 struct SongRow: View {
     let song: Song
     let isFavorite: Bool
@@ -94,37 +120,100 @@ struct SongRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ArtworkView(url: song.coverURL, size: 48, corner: 12)
+            ArtworkView(url: song.coverURL, size: 48, radius: 12)
             VStack(alignment: .leading, spacing: 3) {
                 Text(song.title)
-                    .font(.system(size: 15, weight: isCurrent ? .bold : .semibold))
-                    .foregroundStyle(isCurrent ? Color.vaultAccent : .white)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isCurrent ? Theme.accent : Theme.primaryText)
                     .lineLimit(1)
-                HStack(spacing: 5) {
-                    Text(song.artist).font(.system(size: 12.5)).foregroundStyle(.secondary)
-                    if let length = song.length {
-                        Text("•").foregroundStyle(.secondary.opacity(0.5))
-                        Text(length).font(.system(size: 12.5)).foregroundStyle(.secondary)
-                    }
-                }
-                .lineLimit(1)
+                Text(subtitle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.secondaryText)
+                    .lineLimit(1)
             }
             Spacer()
             if isCurrent {
                 EqualizerBars(playing: player.isPlaying)
             } else if isFavorite {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.vaultGold)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.gold)
             }
-            Image(systemName: "play.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(Color.white.opacity(0.7))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
+    }
+
+    private var subtitle: String {
+        if let length = song.length {
+            return "\(song.artist)  ·  \(length)"
+        }
+        return song.artist
     }
 }
+
+// MARK: - Section header
+
+struct SectionHeader: View {
+    let title: String
+    var trailing: String? = nil
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(title.uppercased())
+                .font(.system(size: 13, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(Theme.primaryText)
+            Spacer()
+            if let trailing {
+                Text(trailing)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.tertiaryText)
+            }
+        }
+    }
+}
+
+// MARK: - Loading placeholders
+
+struct SkeletonRow: View {
+    var titleWidth: CGFloat = 150
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.raised)
+                .frame(width: 48, height: 48)
+            VStack(alignment: .leading, spacing: 7) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Theme.raised)
+                    .frame(width: titleWidth, height: 12)
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Theme.raised)
+                    .frame(width: 86, height: 10)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .opacity(pulse ? 0.45 : 1)
+        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+        .onAppear { pulse = true }
+    }
+}
+
+// MARK: - Press feedback
+
+struct RowPress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.5 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Haptics
 
 enum Vibe {
     static func tap() {

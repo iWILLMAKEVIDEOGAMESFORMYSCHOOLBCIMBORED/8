@@ -23,16 +23,21 @@ struct JuiceVaultApp: App {
                     FavoritesView()
                         .tabItem { Label("Favorites", systemImage: "heart.fill") }
                 }
-                .tint(Color.vaultAccent)
+                .tint(Theme.accent)
+                .toolbarBackground(Theme.bg, for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
 
                 if player.currentSong != nil {
                     PlayerBarView(showFullPlayer: $showFullPlayer)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .background(Color.vaultBg)
+            .background(Theme.bg)
             .preferredColorScheme(.dark)
+            .animation(.spring(response: 0.38, dampingFraction: 0.86), value: player.currentSong != nil)
             .sheet(isPresented: $showFullPlayer) {
                 FullPlayerView()
+                    .presentationDragIndicator(.hidden)
             }
         }
     }
