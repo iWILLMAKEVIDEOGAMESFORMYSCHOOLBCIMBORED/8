@@ -23,13 +23,13 @@ struct JuiceVaultApp: App {
                     FavoritesView()
                         .tabItem { Label("Favorites", systemImage: "heart.fill") }
                 }
-                .tint(Color(red: 0.5, green: 0.85, blue: 0.45))
+                .tint(Color.vaultAccent)
 
                 if player.currentSong != nil {
                     PlayerBarView(showFullPlayer: $showFullPlayer)
                 }
             }
-            .background(Color(red: 0.06, green: 0.05, blue: 0.09))
+            .background(Color.vaultBg)
             .preferredColorScheme(.dark)
             .sheet(isPresented: $showFullPlayer) {
                 FullPlayerView()

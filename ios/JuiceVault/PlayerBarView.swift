@@ -7,57 +7,70 @@ struct PlayerBarView: View {
     var body: some View {
         if let song = player.currentSong {
             HStack(spacing: 12) {
-                AsyncImage(url: song.coverURL) { phase in
-                    if case .success(let image) = phase {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Color(red: 0.16, green: 0.13, blue: 0.26)
-                    }
+                ArtworkView(url: song.coverURL, size: 44, corner: 10)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(song.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Text(song.artist)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                .frame(width: 40, height: 40)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(song.title).font(.system(size: 13, weight: .semibold))
-                        .lineLimit(1).foregroundStyle(.white)
-                    Text(song.artist).font(.system(size: 11))
-                        .lineLimit(1).foregroundStyle(.secondary)
-                }
-
                 Spacer()
-
+                if player.isPlaying {
+                    EqualizerBars(playing: true)
+                        .padding(.trailing, 2)
+                }
                 Button {
                     player.togglePlay()
+                    Vibe.tap()
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(LinearGradient.vaultGradient))
                 }
-
                 Button {
                     player.next()
+                    Vibe.tap()
                 } label: {
-                    Image(systemName: "forward.fill").font(.system(size: 16))
-                        .foregroundStyle(.white)
+                    Image(systemName: "forward.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .frame(width: 30, height: 30)
                 }
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             .background(
-                Color(red: 0.11, green: 0.09, blue: 0.17)
-                    .overlay(alignment: .bottom) {
-                        GeometryReader { geo in
-                            VStack(spacing: 0) {
-                                Spacer(minLength: 0)
-                                Rectangle()
-                                    .fill(Color(red: 0.5, green: 0.85, blue: 0.45))
-                                    .frame(width: geo.size.width * barProgress, height: 2)
-                            }
-                        }
-                        .allowsHitTesting(false)
-                    }
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.12))
+                    )
             )
+            .overlay(alignment: .bottom) {
+                GeometryReader { geo in
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        Capsule()
+                            .fill(LinearGradient.vaultGradient)
+                            .frame(width: geo.size.width * barProgress, height: 2.5)
+                    }
+                }
+                .allowsHitTesting(false)
+            }
             .contentShape(Rectangle())
-            .onTapGesture { showFullPlayer = true }
+            .onTapGesture {
+                showFullPlayer = true
+                Vibe.tap()
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 6)
         }
     }
 
